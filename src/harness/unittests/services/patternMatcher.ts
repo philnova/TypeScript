@@ -262,135 +262,101 @@ describe("PatternMatcher", () => {
     });
 
     describe("MultiWordPattern", () => {
-        it("ExactWithLowercase", () => {
-            const matches = getAllMatches("AddMetadataReference", "addmetadatareference");
+        //mv
+        function assertKind(candidate: string, pattern: string, kind: ts.PatternMatchKind, isCaseSensitive = true) {//name
+            const matches = getAllMatches(candidate, pattern);
+            assert.equal(matches.kind, kind);
+            assert.equal(matches.isCaseSensitive, isCaseSensitive);
+        }
 
-            assertContainsKind(ts.PatternMatchKind.exact, matches);
+        it("ExactWithLowercase", () => {
+            assertKind("AddMetadataReference", "addmetadatareference", ts.PatternMatchKind.exact, /*isCaseSensitive*/ false);
         });
 
         it("SingleLowercasedSearchWord1", () => {
-            const matches = getAllMatches("AddMetadataReference", "add");
-
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
+            assertKind("AddMetadataReference", "add", ts.PatternMatchKind.prefix, /*isCaseSensitive*/ false);
         });
 
         it("SingleLowercasedSearchWord2", () => {
-            const matches = getAllMatches("AddMetadataReference", "metadata");
-
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            assertKind("AddMetadataReference", "metadata", ts.PatternMatchKind.substring, /*isCaseSensitive*/ false);
         });
 
         it("SingleUppercaseSearchWord1", () => {
-            const matches = getAllMatches("AddMetadataReference", "Add");
-
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
+            assertKind("AddMetadataReference", "Add", ts.PatternMatchKind.prefix);
         });
 
         it("SingleUppercaseSearchWord2", () => {
-            const matches = getAllMatches("AddMetadataReference", "Metadata");
-
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            assertKind("AddMetadataReference", "Metadata", ts.PatternMatchKind.substring);
         });
 
         it("SingleUppercaseSearchLetter1", () => {
-            const matches = getAllMatches("AddMetadataReference", "A");
-
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
+            assertKind("AddMetadataReference", "A", ts.PatternMatchKind.prefix);
         });
 
         it("SingleUppercaseSearchLetter2", () => {
-            const matches = getAllMatches("AddMetadataReference", "M");
-
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            assertKind("AddMetadataReference", "M", ts.PatternMatchKind.substring);
         });
 
         it("TwoLowercaseWords", () => {
-            const matches = getAllMatches("AddMetadataReference", "add metadata");
+            assertKind("AddMetadataReference", "add metadata", ts.PatternMatchKind.prefix, /*isCaseSensitive*/ false);
 
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            //assertContainsKind(ts.PatternMatchKind.prefix, matches);
+            //assertContainsKind(ts.PatternMatchKind.substring, matches);
         });
 
         it("TwoLowercaseWords", () => {
-            const matches = getAllMatches("AddMetadataReference", "A M");
+            assertKind("AddMetadataReference", "A M", ts.PatternMatchKind.prefix);
 
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            //assertContainsKind(ts.PatternMatchKind.prefix, matches);
+            //assertContainsKind(ts.PatternMatchKind.substring, matches);
         });
 
         it("TwoLowercaseWords", () => {
-            const matches = getAllMatches("AddMetadataReference", "AM");
-
-            assertContainsKind(ts.PatternMatchKind.camelCase, matches);
+            assertKind("AddMetadataReference", "AM", ts.PatternMatchKind.camelCase);
         });
 
         it("TwoLowercaseWords", () => {
-            const matches = getAllMatches("AddMetadataReference", "ref Metadata");
-
-            assertArrayEquals(ts.map(matches, m => m.kind), [ts.PatternMatchKind.substring, ts.PatternMatchKind.substring]);
+            assertKind("AddMetadataReference", "ref Metadata", ts.PatternMatchKind.substring, /*isCaseSensitive*/ false);
         });
 
         it("TwoLowercaseWords", () => {
-            const matches = getAllMatches("AddMetadataReference", "ref M");
-
-            assertArrayEquals(ts.map(matches, m => m.kind), [ts.PatternMatchKind.substring, ts.PatternMatchKind.substring]);
+            assertKind("AddMetadataReference", "ref M", ts.PatternMatchKind.substring, /*isCaseSensitive*/ false);
         });
 
         it("MixedCamelCase", () => {
-            const matches = getAllMatches("AddMetadataReference", "AMRe");
-
-            assertContainsKind(ts.PatternMatchKind.camelCase, matches);
+            assertKind("AddMetadataReference", "AMRe", ts.PatternMatchKind.camelCase);
         });
 
         it("BlankPattern", () => {
-            const matches = getAllMatches("AddMetadataReference", "");
-
-            assert.isTrue(matches === undefined);
+            assert.equal(getAllMatches("AddMetadataReference", ""), undefined);
         });
 
         it("WhitespaceOnlyPattern", () => {
-            const matches = getAllMatches("AddMetadataReference", " ");
-
-            assert.isTrue(matches === undefined);
+            assert.equal(getAllMatches("AddMetadataReference", " "), undefined);
         });
 
         it("EachWordSeparately1", () => {
-            const matches = getAllMatches("AddMetadataReference", "add Meta");
-
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            assertKind("AddMetadataReference", "add Meta", ts.PatternMatchKind.prefix, /*isCaseSensitive*/ false);
         });
 
         it("EachWordSeparately2", () => {
-            const matches = getAllMatches("AddMetadataReference", "Add meta");
-
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            assertKind("AddMetadataReference", "Add meta", ts.PatternMatchKind.prefix, /*isCaseSensitive*/ false);
         });
 
         it("EachWordSeparately3", () => {
-            const matches = getAllMatches("AddMetadataReference", "Add Meta");
-
-            assertContainsKind(ts.PatternMatchKind.prefix, matches);
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
+            assertKind("AddMetadataReference", "Add Meta", ts.PatternMatchKind.prefix);
         });
 
         it("MixedCasing", () => {
-            const matches = getAllMatches("AddMetadataReference", "mEta");
-
-            assert.isTrue(matches === undefined);
+            assert.equal(getAllMatches("AddMetadataReference", "mEta"), undefined);
         });
 
         it("MixedCasing2", () => {
-            const matches = getAllMatches("AddMetadataReference", "Data");
-
-            assert.isTrue(matches === undefined);
+            assert.equal(getAllMatches("AddMetadataReference", "Data"), undefined);
         });
 
         it("AsteriskSplit", () => {
-            const matches = getAllMatches("GetKeyWord", "K*W");
-
-            assertArrayEquals(ts.map(matches, m => m.kind), [ts.PatternMatchKind.substring, ts.PatternMatchKind.substring]);
+            assertKind("GetKeyWord", "K*W", ts.PatternMatchKind.substring);
         });
 
         it("LowercaseSubstring1", () => {
@@ -400,67 +366,52 @@ describe("PatternMatcher", () => {
         });
 
         it("LowercaseSubstring2", () => {
-            const matches = getAllMatches("FooAttribute", "a");
-            assertContainsKind(ts.PatternMatchKind.substring, matches);
-            assert.isFalse(matches[0].isCaseSensitive);
+            assertKind("FooAttribute", "a", ts.PatternMatchKind.substring, /*isCaseSensitive*/ false);
         });
     });
 
     describe("DottedPattern", () => {
         it("DottedPattern1", () => {
-            const match = getFirstMatchForDottedPattern("Foo.Bar.Baz", "Quux", "B.Q");
-
-            assert.equal(ts.PatternMatchKind.prefix, match.kind);
-            assert.equal(true, match.isCaseSensitive);
+            getMatchForDottedPattern("Foo.Bar.Baz", "Quux", "B.Q", { kind: ts.PatternMatchKind.prefix, isCaseSensitive: true });
         });
 
         it("DottedPattern2", () => {
-            const match = getFirstMatchForDottedPattern("Foo.Bar.Baz", "Quux", "C.Q");
-            assert.isTrue(match === undefined);
+            getMatchForDottedPattern("Foo.Bar.Baz", "Quux", "C.Q", undefined);
         });
 
         it("DottedPattern3", () => {
-            const match = getFirstMatchForDottedPattern("Foo.Bar.Baz", "Quux", "B.B.Q");
-            assert.equal(ts.PatternMatchKind.prefix, match.kind);
-            assert.equal(true, match.isCaseSensitive);
+            getMatchForDottedPattern("Foo.Bar.Baz", "Quux", "B.B.Q", { kind: ts.PatternMatchKind.prefix, isCaseSensitive: true });
         });
 
         it("DottedPattern4", () => {
-            const match = getFirstMatchForDottedPattern("Foo.Bar.Baz", "Quux", "Baz.Quux");
-            assert.equal(ts.PatternMatchKind.exact, match.kind);
-            assert.equal(true, match.isCaseSensitive);
+            getMatchForDottedPattern("Foo.Bar.Baz", "Quux", "Baz.Quux", { kind: ts.PatternMatchKind.exact, isCaseSensitive: true });
         });
 
         it("DottedPattern5", () => {
-            const match = getFirstMatchForDottedPattern("Foo.Bar.Baz", "Quux", "F.B.B.Quux");
-            assert.equal(ts.PatternMatchKind.exact, match.kind);
-            assert.equal(true, match.isCaseSensitive);
+            getMatchForDottedPattern("Foo.Bar.Baz", "Quux", "F.B.B.Quux", { kind: ts.PatternMatchKind.prefix, isCaseSensitive: true });
         });
 
         it("DottedPattern6", () => {
-            const match = getFirstMatchForDottedPattern("Foo.Bar.Baz", "Quux", "F.F.B.B.Quux");
-            assert.isTrue(match === undefined);
+            getMatchForDottedPattern("Foo.Bar.Baz", "Quux", "F.F.B.B.Quux", undefined);
         });
 
         it("DottedPattern7", () => {
-            let match = getFirstMatch("UIElement", "UIElement");
-            match = getFirstMatch("GetKeyword", "UIElement");
-            assert.isTrue(match === undefined);
+            assert.deepEqual(getFirstMatch("UIElement", "UIElement"), { kind: ts.PatternMatchKind.exact, isCaseSensitive: true });
+            assert.deepEqual(getFirstMatch("GetKeyword", "UIElement"), undefined);
         });
     });
 
-    function getFirstMatch(candidate: string, pattern: string): ts.PatternMatch {
-        const matches = ts.createPatternMatcher(pattern).getMatchesForLastSegmentOfPattern(candidate);
-        return matches ? matches[0] : undefined;
-    }
-
-    function getAllMatches(candidate: string, pattern: string): ts.PatternMatch[] {
+    function getFirstMatch(candidate: string, pattern: string): ts.MatchInfo { //name
         return ts.createPatternMatcher(pattern).getMatchesForLastSegmentOfPattern(candidate);
     }
 
-    function getFirstMatchForDottedPattern(dottedContainer: string, candidate: string, pattern: string): ts.PatternMatch {
-        const matches = ts.createPatternMatcher(pattern).getMatches(dottedContainer.split("."), candidate);
-        return matches ? matches[0] : undefined;
+    function getAllMatches(candidate: string, pattern: string): ts.MatchInfo {
+        return ts.createPatternMatcher(pattern).getMatchesForLastSegmentOfPattern(candidate);
+    }
+
+    //name
+    function getMatchForDottedPattern(dottedContainer: string, candidate: string, pattern: string, match: ts.MatchInfo | undefined): void { //name
+        assert.deepEqual(ts.createPatternMatcher(pattern).getFullMatch(dottedContainer.split("."), candidate), match);
     }
 
     function spanListToSubstrings(identifier: string, spans: ts.TextSpan[]) {
@@ -488,9 +439,5 @@ describe("PatternMatcher", () => {
 
     function verifyBreakIntoWordSpans(original: string, ...parts: string[]): void {
         assertArrayEquals(parts, breakIntoWordSpans(original));
-    }
-
-    function assertContainsKind(kind: ts.PatternMatchKind, results: ts.PatternMatch[]) {
-        assert.isTrue(ts.forEach(results, r => r.kind === kind));
     }
 });

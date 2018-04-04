@@ -21,6 +21,12 @@ namespace ts {
         isCaseSensitive: boolean;
     }
 
+    //name
+    export interface MatchInfo {
+        readonly kind: PatternMatchKind;
+        readonly isCaseSensitive: boolean;
+    }
+
     // The pattern matcher maintains an internal cache of information as it is used.  Therefore,
     // you should not keep it around forever and should get and release the matcher appropriately
     // once you no longer need it.
@@ -33,12 +39,12 @@ namespace ts {
         // this will return a successful match, having only tested "SK" against "SyntaxKind".  At
         // that point a call can be made to 'getMatches("SyntaxKind", "ts.compiler")', with the
         // work to create 'ts.compiler' only being done once the first match succeeded.
-        getMatchesForLastSegmentOfPattern(candidate: string): PatternMatch[];
+        getMatchesForLastSegmentOfPattern(candidate: string): MatchInfo | undefined;//PatternMatch[];
 
         // Fully checks a candidate, with an dotted container, against the search pattern.
         // The candidate must match the last part of the search pattern, and the dotted container
         // must match the preceding segments of the pattern.
-        getMatches(candidateContainers: string[], candidate: string): PatternMatch[] | undefined;
+        getFullMatch(candidateContainers: ReadonlyArray<string>, candidate: string): MatchInfo | undefined; //only used as a bool
 
         // Whether or not the pattern contained dots or not.  Clients can use this to determine
         // If they should call getMatches, or if getMatchesForLastSegmentOfPattern is sufficient.
@@ -110,7 +116,7 @@ namespace ts {
         const invalidPattern = dotSeparatedSegments.length === 0 || forEach(dotSeparatedSegments, segmentIsInvalid);
 
         return {
-            getMatches: (containers, candidate) => skipMatch(candidate) ? undefined : getMatches(containers, candidate, dotSeparatedSegments, stringToWordSpans),
+            getFullMatch: (containers, candidate) => skipMatch(candidate) ? undefined : getFullMatch(containers, candidate, dotSeparatedSegments, stringToWordSpans),
             getMatchesForLastSegmentOfPattern: candidate => skipMatch(candidate) ? undefined : matchSegment(candidate, lastOrUndefined(dotSeparatedSegments), stringToWordSpans),
             patternContainsDots: dotSeparatedSegments.length > 1
         };
@@ -121,7 +127,7 @@ namespace ts {
         }
     }
 
-    function getMatches(candidateContainers: ReadonlyArray<string>, candidate: string, dotSeparatedSegments: ReadonlyArray<Segment>, stringToWordSpans: Map<TextSpan[]>): PatternMatch[] | undefined {
+    function getFullMatch(candidateContainers: ReadonlyArray<string>, candidate: string, dotSeparatedSegments: ReadonlyArray<Segment>, stringToWordSpans: Map<TextSpan[]>): MatchInfo {
         // First, check that the last part of the dot separated pattern matches the name of the
         // candidate.  If not, then there's no point in proceeding and doing the more
         // expensive work.
@@ -140,29 +146,26 @@ namespace ts {
             return undefined;
         }
 
-        // So far so good.  Now break up the container for the candidate and check if all
-        // the dotted parts match up correctly.
-        const totalMatch = candidateMatch;
+        let kind = PatternMatchKind.camelCase;
+        let isCaseSensitive = false;
 
         for (let i = dotSeparatedSegments.length - 2, j = candidateContainers.length - 1;
              i >= 0;
              i -= 1, j -= 1) {
 
-            const segment = dotSeparatedSegments[i];
-            const containerName = candidateContainers[j];
-
-            const containerMatch = matchSegment(containerName, segment, stringToWordSpans);
+            const containerMatch = matchSegment(candidateContainers[j], dotSeparatedSegments[i], stringToWordSpans);
             if (!containerMatch) {
                 // This container didn't match the pattern piece.  So there's no match at all.
                 return undefined;
             }
 
-            addRange(totalMatch, containerMatch);
+            if (containerMatch.kind < kind) {
+                kind = containerMatch.kind;
+                isCaseSensitive = containerMatch.isCaseSensitive;
+            }
         }
 
-        // Success, this symbol's full name matched against the dotted name the user was asking
-        // about.
-        return totalMatch;
+        return { kind, isCaseSensitive };
     }
 
     function getWordSpans(word: string, stringToWordSpans: Map<TextSpan[]>): TextSpan[] {
@@ -225,7 +228,7 @@ namespace ts {
         }
     }
 
-    function matchSegment(candidate: string, segment: Segment, stringToWordSpans: Map<TextSpan[]>): PatternMatch[] {
+    function matchSegment(candidate: string, segment: Segment, stringToWordSpans: Map<TextSpan[]>): MatchInfo {
         // First check if the segment matches as is.  This is also useful if the segment contains
         // characters we would normally strip when splitting into parts that we also may want to
         // match in the candidate.  For example if the segment is "@int" and the candidate is
@@ -236,7 +239,7 @@ namespace ts {
         if (every(segment.totalTextChunk.text, ch => ch !== CharacterCodes.space && ch !== CharacterCodes.asterisk)) {
             const match = matchTextChunk(candidate, segment.totalTextChunk, stringToWordSpans);
             if (match) {
-                return [match];
+                return { kind: match.kind, isCaseSensitive: match.isCaseSensitive };
             }
         }
 
@@ -277,7 +280,7 @@ namespace ts {
         // Only if all words have some sort of match is the pattern considered matched.
 
         const subWordTextChunks = segment.subWordTextChunks;
-        let matches: PatternMatch[];
+        let matches: PatternMatch[]; //don't need
 
         for (const subWordTextChunk of subWordTextChunks) {
             // Try to match the candidate with this word
@@ -290,7 +293,7 @@ namespace ts {
             matches.push(result);
         }
 
-        return matches;
+        return { kind: Math.min(...matches.map(m => m.kind)), isCaseSensitive: matches.every(m => m.isCaseSensitive) };
     }
 
     function partStartsWith(candidate: string, candidateSpan: TextSpan, pattern: string, ignoreCase: boolean, patternSpan: TextSpan = { start: 0, length: pattern.length }): boolean {
